@@ -22,6 +22,7 @@ HELP_TEXT = """🤖 বট কন্ট্রোল প্যানেল
 /on — বট চালু (গেম-চ্যাট কমান্ড)
 /off — বট বন্ধ (গেম-চ্যাট কমান্ড)
 /restart — গেম সেশন রিস্টার্ট
+/debug on|off — ইনভাইট সমস্যা ধরার জন্য প্যাকেট দেখা
 /gamectl all|admin|off — গেম-চ্যাট থেকে কন্ট্রোল কারা করতে পারবে
 
 👥 স্কোয়াড
@@ -208,6 +209,11 @@ class TgController:
                 f"⏱ আপটাইম: {up // 3600} ঘণ্টা {(up % 3600) // 60} মিনিট"
             )
             return await self._reply(session, chat_id, msg)
+
+        if cmd == "/debug":
+            on = bool(args) and args[0].lower() in ("on", "1", "yes")
+            b.debug_packets = on
+            return await self._reply(session, chat_id, f"🐞 ডিবাগ প্যাকেট: {'চালু (৩ সেকেন্ড পরপর একটা)' if on else 'বন্ধ'}\nউদাহরণ: /debug on  |  /debug off")
 
         if cmd == "/gamectl":
             names = {"all": "সবাই", "admin": "শুধু অ্যাডমিন", "off": "বন্ধ"}
@@ -480,6 +486,22 @@ class TgController:
                     await asyncio.sleep(5)
 
 
+_active = None
+
+
+async def notify(text):
+    """সব অ্যাডমিনকে মেসেজ পাঠায়"""
+    c = _active
+    if not c:
+        return
+    try:
+        async with aiohttp.ClientSession() as session:
+            for chat in c.admin_ids:
+                await c._reply(session, chat, text, None)
+    except Exception as e:
+        print(f"[TG] notify error: {e}")
+
+
 def start(bot_module):
     """main.py থেকে কল হয়। টোকেন/অ্যাডমিন সেট না থাকলে কন্ট্রোল বন্ধ থাকে।"""
     import RAFIN
@@ -491,4 +513,6 @@ def start(bot_module):
     if not token or not admin_ids:
         print("[TG] RAFIN.py-তে TELEGRAM_BOT_TOKEN / TELEGRAM_ADMIN_IDS সেট নেই — টেলিগ্রাম কন্ট্রোল বন্ধ")
         return None
-    return asyncio.create_task(TgController(bot_module, token, admin_ids).run())
+    global _active
+    _active = TgController(bot_module, token, admin_ids)
+    return asyncio.create_task(_active.run())
