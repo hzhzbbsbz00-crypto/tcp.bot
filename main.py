@@ -6,7 +6,7 @@
 #   ██║  ██║██║  ██║██║     ██║██║ ╚████║       ██║   ██╔╝ ██╗   ██║
 #   ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝     ╚═╝╚═╝  ╚═══╝       ╚═╝   ╚═╝  ╚═╝   ╚═╝
 #
-#        ★MUSTAFIZUR TCP BOT — প্রিমিয়াম অল-ইন-ওয়ান TCP বট ★
+#        ★ MUSTAFIZUR TCP BOT — প্রিমিয়াম অল-ইন-ওয়ান TCP বট ★
 #        ▌ লগইন ইঞ্জিন + বট কোর + মূল এন্ট্রি ▌
 #        ▌ শুধু এই একটি ফাইল রান করুন ▌
 #        ▌ .S1 - .S11 সম্পূর্ণ ফিচার যুক্ত ▌
@@ -158,6 +158,8 @@ bot_enabled = True
 game_control_mode = os.environ.get("GAME_CONTROL", "all").lower()
 bot_key = None
 bot_iv = None
+debug_packets = False   # টেলিগ্রামে /debug on দিলে অনলাইন সার্ভারের প্যাকেট দেখাবে
+_last_dbg = 0.0
 session_task = None
 started_at = time.time()
 
@@ -1178,6 +1180,15 @@ async def send_welcome(chat_code, key, iv):
 #              ★ TCP অনলাইন হ্যান্ডলার ★
 # ═══════════════════════════════════════════════════════════════
 
+async def _notify(text):
+    """টেলিগ্রাম অ্যাডমিনকে মেসেজ পাঠায় (কন্ট্রোল চালু না থাকলে কিছুই করে না)"""
+    try:
+        import tg_control
+        await tg_control.notify(text)
+    except Exception:
+        pass
+
+
 async def TcPOnLine(ip, port, key, iv, AutHToKen, reconnect_delay=0.5):
     global online_writer, whisper_writer, region, bot_uid
     while True:
@@ -1195,16 +1206,26 @@ async def TcPOnLine(ip, port, key, iv, AutHToKen, reconnect_delay=0.5):
                 try: packet_json = json.loads(await DeCode_PackEt(hex_data[10:]))
                 except Exception: continue
 
+                global _last_dbg
+                if debug_packets and time.time() - _last_dbg > 3:
+                    _last_dbg = time.time()
+                    await _notify("🐞 প্যাকেট:\n" + json.dumps(packet_json, ensure_ascii=False)[:1800])
+
                 try:
                     if ('5' in packet_json and 'data' in packet_json['5'] and '1' in packet_json['5']['data'] and '8' in packet_json['5']['data']):
                         owner = packet_json['5']['data']['1']['data']
                         code = packet_json['5']['data']['8']['data']
                         print_tag(f"স্কোয়াড ইনভাইট: {owner}", "yellow")
+                        await _notify(f"📨 ইনভাইট এসেছে\nপ্রেরক UID: {owner}\nকোড: {code}")
                         join_pkt = await MahirAccepted(owner, code, key, iv, region)
                         if join_pkt and online_writer:
                             await SEndPacKeT(whisper_writer, online_writer, 'OnLine', join_pkt)
-                except Exception:
-                    pass
+                            await _notify("📤 ইনভাইট একসেপ্ট প্যাকেট পাঠানো হয়েছে")
+                        else:
+                            await _notify("⚠️ একসেপ্ট প্যাকেট তৈরি/পাঠানো যায়নি")
+                except Exception as e:
+                    print_tag(f"ইনভাইট একসেপ্ট সমস্যা: {e}", "red")
+                    await _notify(f"❌ ইনভাইট একসেপ্ট ব্যর্থ: {str(e)[:300]}")
 
                 try:
                     uid_g, chat_code, squad_code = await GeTSQDaTa(packet_json)
