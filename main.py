@@ -6,7 +6,7 @@
 #   ██║  ██║██║  ██║██║     ██║██║ ╚████║       ██║   ██╔╝ ██╗   ██║
 #   ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝     ╚═╝╚═╝  ╚═══╝       ╚═╝   ╚═╝  ╚═╝   ╚═╝
 #
-#        ★ RAFIN TxT — প্রিমিয়াম অল-ইন-ওয়ান TCP বট ★
+#        ★MUSTAFIZUR TCP BOT — প্রিমিয়াম অল-ইন-ওয়ান TCP বট ★
 #        ▌ লগইন ইঞ্জিন + বট কোর + মূল এন্ট্রি ▌
 #        ▌ শুধু এই একটি ফাইল রান করুন ▌
 #        ▌ .S1 - .S11 সম্পূর্ণ ফিচার যুক্ত ▌
@@ -154,6 +154,8 @@ admin_uid = ADMIN_UID   # ✅ config থেকে আসছে
 evo_cycle_running = False
 evo_cycle_task = None
 bot_enabled = True
+# গেম-চ্যাট থেকে কন্ট্রোল: all = সবাই, admin = শুধু ADMIN_UID, off = বন্ধ (টেলিগ্রাম থেকে বদলানো যায়)
+game_control_mode = os.environ.get("GAME_CONTROL", "all").lower()
 bot_key = None
 bot_iv = None
 session_task = None
@@ -1279,6 +1281,12 @@ async def TcPChaT(ip, port, AutHToKen, key, iv, login_data, ready_event, region,
                 # ═══════════════════════════════════════════════
                 # .S1 / .S2 / .S3 / .S4 / .S5 / .S6 / .S7 / .S8 / .S11
                 # ═══════════════════════════════════════════════
+                # ── গেম-চ্যাট কন্ট্রোল মোড (টেলিগ্রাম থেকে সেট হয়) ──
+                if game_control_mode == "off":
+                    continue
+                if game_control_mode == "admin" and str(uid) != str(admin_uid):
+                    continue
+
                 _cmd = msg_raw.strip()
                 if _cmd == '.S1':
                     await handle_dot_s1(uid, chat_id, key, iv, region, XX, bot_uid)
