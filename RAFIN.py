@@ -8,10 +8,12 @@ import os
 import json
 
 # ─── টেলিগ্রাম ───
-# এখানে BotFather-এর টোকেন বসান (Environment Variable থাকলে সেটাই আগে নেবে)
-TELEGRAM_BOT_TOKEN = os.environ.get(9147107051:AAFvLgEIYrcYHkCpbEqIAq1oEjBqnpdwqjw) or "PASTE_TELEGRAM_BOT_TOKEN_HERE"
-# আপনার টেলিগ্রাম ইউজার আইডি (একাধিক হলে কমা দিয়ে: "1111,2222")
-TELEGRAM_ADMIN_IDS = os.environ.get("8253965718") or "PASTE_YOUR_TELEGRAM_USER_ID_HERE"
+# ⚠️ শুধু নিচের দুটো " " এর ভেতরে বসান — বাকি লাইনে হাত দেবেন না
+MY_TELEGRAM_BOT_TOKEN = "9147107051:AAFvLgEIYrcYHkCpbEqIAq1oEjBqnpdwqjw"     # ← BotFather-এর টোকেন এখানে ("" এর ভেতরে)
+MY_TELEGRAM_ADMIN_IDS = "8253965718"     # ← আপনার টেলিগ্রাম ইউজার আইডি, একাধিক হলে "111,222"
+
+TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN") or MY_TELEGRAM_BOT_TOKEN
+TELEGRAM_ADMIN_IDS = os.environ.get("TELEGRAM_ADMIN_IDS") or MY_TELEGRAM_ADMIN_IDS
 
 # ─── গেম অ্যাকাউন্ট (ডিফল্ট; টেলিগ্রাম থেকে বদলানো যাবে) ───
 UID = os.environ.get("BOT_UID", "")
