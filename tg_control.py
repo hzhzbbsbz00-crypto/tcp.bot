@@ -22,6 +22,7 @@ HELP_TEXT = """🤖 বট কন্ট্রোল প্যানেল
 /on — বট চালু (গেম-চ্যাট কমান্ড)
 /off — বট বন্ধ (গেম-চ্যাট কমান্ড)
 /restart — গেম সেশন রিস্টার্ট
+/gamectl all|admin|off — গেম-চ্যাট থেকে কন্ট্রোল কারা করতে পারবে
 
 👥 স্কোয়াড
 /join <কোড> — স্কোয়াডে জয়েন
@@ -56,6 +57,9 @@ BUNDLE_IDS = {
 }
 
 
+MODE_NAMES = {"all": "সবাই", "admin": "শুধু অ্যাডমিন", "off": "বন্ধ"}
+
+
 def _btn(text, data):
     return {"text": text, "callback_data": data}
 
@@ -72,7 +76,8 @@ MAIN_MENU = {"inline_keyboard": [
     [_btn("➕ ফ্রেন্ড অ্যাড", "ask:/add"), _btn("➖ ফ্রেন্ড রিমুভ", "ask:/remove")],
     [_btn("ℹ️ প্লেয়ার ইনফো", "ask:/info"), _btn("🔍 ব্যান চেক", "ask:/check")],
     [_btn("🔑 অ্যাকাউন্ট সেট", "ask:/setaccount"), _btn("👁 অ্যাকাউন্ট দেখুন", "run:/account")],
-    [_btn("🗑 অ্যাকাউন্ট মুছুন", "run:/delaccount"), _btn("❓ সাহায্য", "run:/help")],
+    [_btn("🎮 গেম কন্ট্রোল", "sub:gamectl"), _btn("🗑 অ্যাকাউন্ট মুছুন", "run:/delaccount")],
+    [_btn("❓ সাহায্য", "run:/help")],
 ]}
 
 
@@ -84,6 +89,15 @@ def bundle_menu():
             rows.append(row); row = []
     rows.append([_btn("🔙 মেনু", "menu")])
     return {"inline_keyboard": rows}
+
+
+def gamectl_menu():
+    return {"inline_keyboard": [
+        [_btn("🌐 সবাই ব্যবহার করতে পারবে", "run:/gamectl all")],
+        [_btn("👑 শুধু অ্যাডমিন (গেম UID)", "run:/gamectl admin")],
+        [_btn("⛔ গেম থেকে কন্ট্রোল বন্ধ", "run:/gamectl off")],
+        [_btn("🔙 মেনু", "menu")],
+    ]}
 
 
 def badge_menu():
@@ -189,10 +203,21 @@ class TgController:
                 f"👤 নাম: {b.bot_nickname}\n"
                 f"🌍 অঞ্চল: {b.region}\n"
                 f"⚙️ গেম-চ্যাট কমান্ড: {'চালু' if b.bot_enabled else 'বন্ধ'}\n"
+                f"🎮 গেম কন্ট্রোল মোড: {MODE_NAMES.get(b.game_control_mode, b.game_control_mode)}\n"
                 f"🔁 ইভো সাইকেল: {'চলছে' if evo else 'বন্ধ'}\n"
                 f"⏱ আপটাইম: {up // 3600} ঘণ্টা {(up % 3600) // 60} মিনিট"
             )
             return await self._reply(session, chat_id, msg)
+
+        if cmd == "/gamectl":
+            names = {"all": "সবাই", "admin": "শুধু অ্যাডমিন", "off": "বন্ধ"}
+            if not args or args[0].lower() not in names:
+                return await self._reply(session, chat_id, "ব্যবহার: /gamectl all | admin | off")
+            b.game_control_mode = args[0].lower()
+            note = ""
+            if b.game_control_mode == "admin" and not getattr(b, "admin_uid", ""):
+                note = "\n⚠️ ADMIN_UID সেট নেই, তাই গেম থেকে কেউই কমান্ড দিতে পারবে না। Environment-এ ADMIN_UID দিন।"
+            return await self._reply(session, chat_id, f"🎮 গেম কন্ট্রোল: {names[b.game_control_mode]}{note}")
 
         if cmd == "/on":
             b.bot_enabled = True
@@ -397,6 +422,10 @@ class TgController:
             elif kind == "sub":
                 if arg == "bundle":
                     await self._reply(session, chat, "🎁 বান্ডেল নম্বর বেছে নিন:", bundle_menu())
+                elif arg == "gamectl":
+                    mode = getattr(self.bot, "game_control_mode", "all")
+                    names = {"all": "সবাই", "admin": "শুধু অ্যাডমিন", "off": "বন্ধ"}
+                    await self._reply(session, chat, f"🎮 গেম-চ্যাট কন্ট্রোল\nবর্তমান: {names.get(mode, mode)}\n\nকে গেমের চ্যাট থেকে বটকে কমান্ড দিতে পারবে বেছে নিন:", gamectl_menu())
                 elif arg == "badge":
                     await self._reply(session, chat, "🏅 ব্যাজ টাইপ বেছে নিন:", badge_menu())
         except Exception as e:
